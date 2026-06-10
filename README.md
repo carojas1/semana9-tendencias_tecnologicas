@@ -111,7 +111,7 @@ Implementar una infraestructura full-stack completa usando Docker Compose con Po
 
 ### Paso 1: Configurar el archivo `.env`
 
-El archivo `.env` centraliza todas las credenciales y variables de configuración para los servicios:
+El archivo `.env` centraliza todas las variables de configuración para los servicios:
 
 ```env
 # Base de Datos PostgreSQL
@@ -146,23 +146,15 @@ SPRING_PROFILES_ACTIVE=prod
 
 ---
 
-### Paso 2: Revisar la entidad Usuario
+### Paso 2: Crear la entidad Usuario (`User.kt`)
 
-La entidad `User` está mapeada a la tabla `users` de PostgreSQL con los campos `id`, `username`, `email`, `passwordHash`, `isActive` y `createdAt`.
-
-**`User.kt` — Entidad JPA en Visual Studio Code:**
-
-![User.kt - Entidad JPA en Kotlin](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_userkt.png)
+La entidad `User` está mapeada a la tabla `users` de PostgreSQL con JPA. Los campos son: `id`, `username`, `email`, `passwordHash`, `isActive` y `createdAt`.
 
 ---
 
-### Paso 3: Revisar el controlador REST
+### Paso 3: Crear el controlador REST (`UserController.kt`)
 
-El `UserController` expone el endpoint `GET /users` que retorna todos los usuarios en formato JSON.
-
-**`UserController.kt` en Visual Studio Code:**
-
-![UserController.kt - controlador REST endpoint GET /users](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_controller.png)
+El `UserController` expone el endpoint `GET /users` con la anotación `@CrossOrigin` y retorna todos los usuarios en formato JSON con código HTTP 200.
 
 ---
 
@@ -185,21 +177,13 @@ EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
-**`Dockerfile` del backend en Visual Studio Code:**
-
-![Dockerfile del backend Spring Boot - multi-stage build](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockerfile_backend.png)
-
-La ventaja del Multi-Stage Build es que la imagen final solo contiene el JRE y el `.jar`, sin Maven ni el JDK completo, lo que la hace mucho más liviana.
+La ventaja del Multi-Stage Build es que la imagen final solo contiene el JRE y el `.jar`, sin Maven ni el JDK completo.
 
 ---
 
 ### Paso 5: Crear el componente React (`App.jsx`)
 
-El componente principal hace un `fetch` a `/api/users` al montar el componente y muestra los datos en una tabla HTML. La ruta es relativa porque nginx intercepta `/api/` y la redirige al backend.
-
-**`App.jsx` en Visual Studio Code:**
-
-![App.jsx - componente React con la tabla de usuarios](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_appjsx.png)
+El componente principal hace un `fetch` a `/api/users` al montar el componente y muestra los datos en una tabla HTML. La ruta es relativa porque nginx intercepta `/api/` y la redirige al backend internamente.
 
 ---
 
@@ -221,13 +205,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 ```
 
-**`Dockerfile` del frontend en Visual Studio Code:**
-
-![Dockerfile del frontend React - node builder + nginx alpine](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockerfile_frontend.png)
-
 ---
 
-### Paso 7: Configurar nginx como Proxy Inverso
+### Paso 7: Configurar nginx como Proxy Inverso (`nginx.conf`)
 
 ```nginx
 server {
@@ -246,11 +226,7 @@ server {
 }
 ```
 
-**`nginx.conf` en Visual Studio Code:**
-
-![nginx.conf con proxy inverso hacia backend_app:8081](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_nginx.png)
-
-El bloque `location /api/` redirige al contenedor `backend_app` usando el nombre del servicio como hostname Docker. Esto funciona porque ambos contenedores están en la misma red `backend_network`.
+El bloque `location /api/` redirige al contenedor `backend_app` usando el nombre del servicio como hostname Docker. Funciona porque ambos contenedores están en la misma red `backend_network`.
 
 ---
 
@@ -338,10 +314,6 @@ networks:
     driver: bridge
 ```
 
-**`docker-compose.yml` en Visual Studio Code:**
-
-![docker-compose.yml con los 4 servicios orquestados](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockercompose.png)
-
 ---
 
 ### Paso 9: Levantar todos los contenedores
@@ -356,48 +328,91 @@ docker compose up --build -d
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                   Navegador / Host                           │
-└────────┬─────────────────────────┬──────────────────────────┘
-         │ Puerto 3000             │ Puerto 8090
-         │                         │
-┌────────▼──────────┐   ┌──────────▼───────────────┐
-│   frontend_app    │   │         pgadmin           │
-│   nginx:alpine    │   │   dpage/pgadmin4:8.4      │
-│  React (Vite)     │   │   Administrador visual    │
-└────────┬──────────┘   └──────────┬────────────────┘
-         │ /api/ proxy_pass         │
-         │ Puerto 8081              │
-┌────────▼──────────────────────────▼────────────────┐
-│                  backend_network (bridge)           │
-│  ┌─────────────────────────────────────────────┐   │
-│  │            backend_app                      │   │
-│  │         Spring Boot Kotlin                  │   │
-│  │           Puerto 8081                       │   │
-│  └──────────────────┬──────────────────────────┘   │
-│                     │ JPA / JDBC                    │
-│  ┌──────────────────▼──────────────────────────┐   │
-│  │            postgres_db                      │   │
-│  │          PostgreSQL 16-alpine               │   │
-│  │            Puerto 5432                      │   │
-│  └──────────────────┬──────────────────────────┘   │
-│                     │                               │
-│              Volumen postgres_data                  │
-└─────────────────────────────────────────────────────┘
+│                     Navegador / Host                         │
+└────────┬──────────────────────────┬───────────────────────── ┘
+         │ Puerto 3000              │ Puerto 8090
+         │                          │
+┌────────▼──────────┐    ┌──────────▼────────────────┐
+│   frontend_app    │    │         pgadmin            │
+│   nginx:alpine    │    │   dpage/pgadmin4:8.4       │
+│  React (Vite)     │    │   Administrador visual     │
+└────────┬──────────┘    └──────────┬─────────────────┘
+         │ /api/ proxy_pass          │
+         │                           │
+┌────────▼───────────────────────────▼──────────────────────┐
+│                  backend_network (bridge)                  │
+│                                                            │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │                   backend_app                       │  │
+│  │              Spring Boot Kotlin                     │  │
+│  │                 Puerto 8081                         │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │ JPA / JDBC                       │
+│  ┌──────────────────────▼──────────────────────────────┐  │
+│  │                   postgres_db                       │  │
+│  │               PostgreSQL 16-alpine                  │  │
+│  │                  Puerto 5432                        │  │
+│  └──────────────────────┬──────────────────────────────┘  │
+│                         │                                  │
+│                  Volumen postgres_data                      │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 10. Resultados Obtenidos
 
-### Terminal — docker ps (Contenedores activos)
+### Entidad `User.kt` — Modelo JPA en Visual Studio Code
 
-Los cuatro contenedores están corriendo: `frontend_app` en el puerto 3000, `backend_app` en el 8081, `pgadmin` en el 8090 y `postgres_db` en el 5432 con estado `healthy`.
+![User.kt - Entidad JPA en Kotlin](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_userkt.png)
+
+---
+
+### `UserController.kt` — Controlador REST en Visual Studio Code
+
+![UserController.kt - controlador REST con endpoint GET /users](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_controller.png)
+
+---
+
+### `Dockerfile` Backend — Multi-Stage Build en Visual Studio Code
+
+![Dockerfile del backend Spring Boot - multi-stage build](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockerfile_backend.png)
+
+---
+
+### `App.jsx` — Componente React en Visual Studio Code
+
+![App.jsx - componente React con fetch y tabla de usuarios](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_appjsx.png)
+
+---
+
+### `Dockerfile` Frontend — Multi-Stage Build en Visual Studio Code
+
+![Dockerfile del frontend React - node builder + nginx alpine](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockerfile_frontend.png)
+
+---
+
+### `nginx.conf` — Proxy Inverso en Visual Studio Code
+
+![nginx.conf con proxy inverso hacia backend_app:8081](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_nginx.png)
+
+---
+
+### `docker-compose.yml` — Orquestación de los 4 Servicios en Visual Studio Code
+
+![docker-compose.yml con los 4 servicios orquestados](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/vsc_dockercompose.png)
+
+---
+
+### Terminal — `docker ps` (Contenedores activos)
+
+Los cuatro contenedores están corriendo: `frontend_app` en puerto 3000, `backend_app` en 8081, `pgadmin` en 8090 y `postgres_db` en 5432 con estado `healthy`.
 
 ![docker ps mostrando los 4 contenedores activos](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/04_docker_ps.png)
 
 ---
 
-### Backend API — Respuesta GET /users (localhost:8081/users)
+### Backend API — Respuesta `GET /users` (localhost:8081/users)
 
 El endpoint del backend retorna el array JSON con todos los usuarios registrados en PostgreSQL.
 
@@ -407,7 +422,7 @@ El endpoint del backend retorna el array JSON con todos los usuarios registrados
 
 ### Frontend React — Tabla de Usuarios (localhost:3000)
 
-El frontend sirve la aplicación React en el puerto 3000. La tabla muestra correctamente los usuarios obtenidos desde la API a través del proxy nginx.
+El contenedor `frontend_app` sirve la aplicación React en el puerto 3000. La tabla muestra correctamente los usuarios obtenidos desde la API a través del proxy nginx.
 
 ![Frontend React con tabla de usuarios funcionando en Docker](https://raw.githubusercontent.com/carojas1/semana9-tendencias_tecnologicas/assets/screenshots/01_frontend_completo.png)
 
@@ -419,11 +434,11 @@ Con Docker Compose automaticé el despliegue de los cuatro servicios con un solo
 
 La técnica Multi-Stage Build me ayudó a reducir el tamaño de las imágenes. En el frontend, la imagen final con nginx pesa mucho menos que si hubiéramos dejado Node.js completo, porque solo se copian los archivos estáticos compilados.
 
-Configurar nginx como proxy inverso fue la parte más interesante. Permite que el frontend haga peticiones a rutas relativas (`/api/users`) sin necesidad de conocer el puerto o la dirección del backend. Esto es posible porque los contenedores dentro de la misma red Docker se comunican usando el nombre del servicio como hostname.
+Configurar nginx como proxy inverso fue la parte más importante. Permite que el frontend haga peticiones a rutas relativas (`/api/users`) sin necesidad de conocer el puerto o la dirección del backend. Esto es posible porque los contenedores dentro de la misma red Docker se comunican usando el nombre del servicio como hostname.
 
 Usar un archivo `.env` es una buena práctica de seguridad porque evita poner datos sensibles directamente en el código o en el `docker-compose.yml`.
 
-El uso de `depends_on` con `healthcheck` en Docker Compose fue clave para garantizar el orden correcto de arranque: primero PostgreSQL, luego el backend (que espera a que la BD esté lista), y finalmente el frontend.
+El uso de `depends_on` con `healthcheck` en Docker Compose fue clave para garantizar el orden correcto de arranque: primero PostgreSQL, luego el backend, y finalmente el frontend.
 
 Esta práctica me ayudó a entender cómo funciona una arquitectura full-stack contenerizada y cómo aplicar buenas prácticas de DevOps en un proyecto real.
 
