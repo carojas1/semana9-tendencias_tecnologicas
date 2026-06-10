@@ -1,0 +1,10 @@
+node_modules/
+dist/
+target/
+*.class
+.env
+*.log
+frontend-users/
+tendencias-mar22-security/
+
+screenshots/
